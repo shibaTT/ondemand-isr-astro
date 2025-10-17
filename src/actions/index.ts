@@ -20,7 +20,7 @@ export const server = {
             );
 
             if (!response.ok) {
-                return response;
+                return response.statusText;
             }
 
             return true;
