@@ -1,9 +1,10 @@
-addEventListener("fetch", (event) => {
-    event.respondWith(handleRequest(event));
-});
+export default {
+    async fetch(request) {
+        return handleRequest(request);
+    },
+};
 
-async function handleRequest(event) {
-    const { request } = event;
+async function handleRequest(request) {
     const cacheKey = request.url; // キャッシュキー
 
     // 1. キャッシュストアの取得
