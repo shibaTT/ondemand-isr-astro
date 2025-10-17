@@ -1,45 +1,61 @@
-export default {
-    async fetch(request) {
-        return handleRequest(request);
-    },
-};
+// ビルドされたAstro Workerをインポート
+import worker from "../dist/_worker.js/index.js";
 
-async function handleRequest(request) {
-    const cacheKey = request.url; // キャッシュキー
+async function handleRequest(request, env, context) {
+    // Cache APIはGETリクエストのみサポート
+    if (request.method !== "GET") {
+        return worker.fetch(request, env, context);
+    }
 
     // 1. キャッシュストアの取得
     const cache = caches.default;
 
-    // 2. キャッシュのチェック
+    // 2. キャッシュキーの作成
+    const cacheKey = new Request(request.url, {
+        method: "GET",
+        headers: request.headers,
+    });
+
+    // 3. キャッシュのチェック
     let response = await cache.match(cacheKey);
 
     if (response) {
-        // 3. キャッシュヒット
-        // 適切なヘッダーを追加して応答を返す（CF-Cache-StatusはWorkersのCache APIでは自動付与されないが、デバッグ用としてX-Cache-Statusなどを付与可能）
-        console.log("Cache HIT");
-        return response;
+        // 4. キャッシュヒット
+        console.log("Cache HIT:", request.url);
+        // デバッグ用ヘッダーを追加
+        const newResponse = new Response(response.body, response);
+        newResponse.headers.set("X-Cache-Status", "HIT");
+        return newResponse;
     }
 
-    // 4. キャッシュミス
-    console.log("Cache MISS, fetching from Astro SSR");
+    // 5. キャッシュミス - Astro SSRで生成
+    console.log("Cache MISS, fetching from Astro SSR:", request.url);
 
-    // ここでAstroのSSR処理を実行し、レスポンスを取得する
-    // (例: const response = await astroApp.fetch(request, env, context);)
+    // AstroのSSRハンドラーを呼び出し
+    response = await worker.fetch(request, env, context);
 
-    // --- Astro SSR処理が応答を生成したとする ---
-    // 例としてダミーの応答を生成
-    const headers = new Headers();
-    headers.set("Content-Type", "text/html");
-    headers.set(
-        "Cache-Control",
-        "public, s-maxage=31536000, max-age=31536000, stale-while-revalidate=10"
-    ); // Astro側で設定されたヘッダー
-    response = new Response("<html>...</html>", { headers });
-    // ----------------------------------------
+    // 6. 成功したHTMLレスポンスのみキャッシュ
+    if (response.ok && response.headers.get("Content-Type")?.includes("text/html")) {
+        // Cache-Controlヘッダーを設定（必要に応じてAstro側でも設定可能）
+        const cachedResponse = new Response(response.body, response);
+        cachedResponse.headers.set(
+            "Cache-Control",
+            "public, s-maxage=31536000, max-age=31536000, stale-while-revalidate=10"
+        );
+        cachedResponse.headers.set("X-Cache-Status", "MISS");
 
-    // 5. キャッシュに保存
-    // レスポンスのCache-Controlヘッダーに基づき、WorkersのCache APIがキャッシュ期間を決定します
-    request.waitUntil(cache.put(cacheKey, response.clone()));
+        // 7. キャッシュに保存（非同期処理）
+        context.waitUntil(cache.put(cacheKey, cachedResponse.clone()));
 
+        return cachedResponse;
+    }
+
+    // その他のレスポンス（エラーなど）はキャッシュしない
     return response;
 }
+
+export default {
+    async fetch(request, env, context) {
+        return handleRequest(request, env, context);
+    },
+};
