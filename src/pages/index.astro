@@ -6,14 +6,19 @@ const meta = {
     description: "オンデマンドISRテストのサイトです。",
 }
 
-Astro.response.headers.set('Cache-Control', 'public, s-maxage=31536000, max-age=31536000, stale-while-revalidate=10')
+const date = new Date()
+const formattedDate = new Intl.DateTimeFormat('ja-JP', {
+    dateStyle: 'long',
+    timeStyle: 'medium',
+    timeZone: 'Asia/Tokyo',
+}).format(date)
 ---
 
 <BaseLayout {...meta}>
     <h1>オンデマンドISRテスト</h1>
     <button data-id="generate-page">新しいページを生成する</button>
     <div class="date">
-        <p>更新日時: {new Date().toLocaleString()}</p>
+        <p>更新日時: {formattedDate}</p>
     </div>
 </BaseLayout>
 
