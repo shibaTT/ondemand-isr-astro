@@ -39,7 +39,7 @@ async function handleRequest(request) {
 
     // 5. キャッシュに保存
     // レスポンスのCache-Controlヘッダーに基づき、WorkersのCache APIがキャッシュ期間を決定します
-    event.waitUntil(cache.put(cacheKey, response.clone()));
+    request.waitUntil(cache.put(cacheKey, response.clone()));
 
     return response;
 }
