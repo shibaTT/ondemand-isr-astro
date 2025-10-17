@@ -1,16 +1,30 @@
 ---
+import BaseLayout from "@/layouts/BaseLayout.astro"
 
+const meta = {
+    title: "オンデマンドISRテスト",
+    description: "オンデマンドISRテストのサイトです。",
+}
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<BaseLayout {...meta}>
+    <h1>オンデマンドISRテスト</h1>
+    <button data-id="generate-page">新しいページを生成する</button>
+    <div class="date">
+        <p>更新日時: {new Date().toLocaleString()}</p>
+    </div>
+</BaseLayout>
+
+<script>
+    import { actions } from "astro:actions"
+
+    const button = document.querySelector('[data-id="generate-page"]')
+    button?.addEventListener('click', async () => {
+        const result = await actions.generatePage()
+        if (result) {
+            window.alert('ページを生成しました')
+        } else {
+            window.alert('ページ生成に失敗しました')
+        }
+    })
+</script>
