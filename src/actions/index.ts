@@ -19,10 +19,10 @@ export const server = {
             );
 
             if (!response.ok) {
-                return await response.json();
+                return response.statusText;
             }
 
-            return await response.json();
+            return response.status;
         },
     }),
 };
